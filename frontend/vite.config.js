@@ -11,12 +11,10 @@ export default defineConfig({
     },
     server: {
         port: 5174,
-        proxy: {
-            '/api': {
-                target: 'http://localhost:8000',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-        },
+    },
+    test: {
+        environment: 'jsdom',
+        setupFiles: './src/test/setup.js',
+        globals: true,
     },
 })
