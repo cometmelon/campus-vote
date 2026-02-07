@@ -17,14 +17,16 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
 
 
-def get_password_hash(password: str) -> str:
+def get_password_hash(password: str) -> bytes:
     """Hash password using bcrypt"""
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashed_password: Union[str, bytes]) -> bool:
     """Verify password against hash"""
-    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    if isinstance(hashed_password, str):
+        hashed_password = hashed_password.encode()
+    return bcrypt.checkpw(plain_password.encode(), hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

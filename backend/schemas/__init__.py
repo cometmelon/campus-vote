@@ -179,6 +179,11 @@ class SendVotingLinksResponse(BaseModel):
     message: str
 
 
+class VotingValidateResponse(BaseModel):
+    election: ElectionWithCandidates
+    valid: bool
+
+
 # Club schemas
 from models.club import ClubStatus, MemberRole
 
