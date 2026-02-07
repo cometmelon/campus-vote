@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 
 from config import settings
@@ -19,7 +19,7 @@ from schemas import (
     VotingValidateResponse
 )
 from routers.auth import get_current_user, get_admin_user
-from services.email_service import send_voting_emails
+from services.email_service import send_voting_emails, send_voting_emails_bg
 from services.queue_service import create_voting_queue_entries
 
 router = APIRouter(prefix="/voting", tags=["Voting"])
@@ -28,6 +28,7 @@ router = APIRouter(prefix="/voting", tags=["Voting"])
 @router.post("/send-links", response_model=SendVotingLinksResponse)
 async def send_voting_links(
     request: SendVotingLinksRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user)
 ):
@@ -61,7 +62,7 @@ async def send_voting_links(
         VotingQueue.batch_number == 1
     ).all()
     
-    send_voting_emails(db, first_batch, election)
+    background_tasks.add_task(send_voting_emails_bg, [e.id for e in first_batch], election.id)
     
     return SendVotingLinksResponse(
         total_students=len(students),
