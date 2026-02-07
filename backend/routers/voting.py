@@ -76,7 +76,7 @@ async def send_voting_links(
     )
 
 
-@router.get("/validate/{token}")
+@router.get("/validate/{token}", response_model=VotingValidateResponse)
 async def validate_voting_token(token: str, db: Session = Depends(get_db)):
     """Validate a voting token and return election info"""
     queue_entry = (
