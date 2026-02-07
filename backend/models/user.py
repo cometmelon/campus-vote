@@ -16,7 +16,6 @@ class UserRole(str, PyEnum):
 
 # Custom GUID type for cross-database UUID support
 from sqlalchemy.types import TypeDecorator, CHAR
-import uuid as uuid_module
 
 class GUID(TypeDecorator):
     impl = CHAR
@@ -32,7 +31,7 @@ class GUID(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         if value is not None:
-            return uuid_module.UUID(value)
+            return uuid.UUID(value)
         return value
 
 

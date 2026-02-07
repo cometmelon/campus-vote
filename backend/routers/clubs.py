@@ -3,6 +3,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
@@ -19,7 +20,12 @@ async def get_clubs(
     current_user: User = Depends(get_current_user)
 ):
     """Get all clubs"""
-    clubs = db.query(Club).all()
+    clubs_with_counts = (
+        db.query(Club, func.count(ClubMember.id).label("member_count"))
+        .outerjoin(Club.members)
+        .group_by(Club.id)
+        .all()
+    )
     return [
         ClubResponse(
             id=club.id,
@@ -27,9 +33,9 @@ async def get_clubs(
             category=club.category,
             description=club.description,
             status=club.status,
-            member_count=club.member_count
+            member_count=count
         )
-        for club in clubs
+        for club, count in clubs_with_counts
     ]
 
 
