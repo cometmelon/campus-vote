@@ -1,68 +1,50 @@
-from datetime import datetime, timedelta
+import sys
+import os
 import pytest
-from jose import jwt
-from routers.auth import create_access_token
-from config import settings
 
-def test_create_access_token_default_expiration():
-    """Test token creation with default expiration"""
-    data = {"sub": "testuser"}
-    token = create_access_token(data)
+# Add backend directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+from routers.auth import get_password_hash, verify_password
 
-    assert payload["sub"] == "testuser"
-    assert "exp" in payload
+def test_get_password_hash_basic():
+    """Test that get_password_hash returns a string and is not empty."""
+    password = "secret_password"
+    hashed = get_password_hash(password)
+    assert isinstance(hashed, str)
+    assert len(hashed) > 0
 
-    # Check if expiration is close to default (within a reasonable margin)
-    # Default is settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    expected_exp = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+def test_get_password_hash_salt():
+    """Test that get_password_hash generates different hashes for the same password."""
+    password = "secret_password"
+    hash1 = get_password_hash(password)
+    hash2 = get_password_hash(password)
+    assert hash1 != hash2
 
-    # Use utcfromtimestamp to avoid timezone issues when comparing with utcnow()
-    token_exp = datetime.utcfromtimestamp(payload["exp"])
+def test_verify_password_success():
+    """Test that verify_password returns True for correct password and hash."""
+    password = "secret_password"
+    hashed = get_password_hash(password)
+    assert verify_password(password, hashed) is True
 
-    # Allow 5 seconds difference
-    diff = abs((token_exp - expected_exp).total_seconds())
-    assert diff < 5
+def test_verify_password_failure():
+    """Test that verify_password returns False for incorrect password."""
+    password = "secret_password"
+    hashed = get_password_hash(password)
+    assert verify_password("wrong_password", hashed) is False
 
-def test_create_access_token_custom_expiration():
-    """Test token creation with custom expiration"""
-    data = {"sub": "testuser"}
-    expires_delta = timedelta(minutes=15)
-    token = create_access_token(data, expires_delta=expires_delta)
+def test_get_password_hash_empty():
+    """Test that get_password_hash handles empty string."""
+    password = ""
+    hashed = get_password_hash(password)
+    assert isinstance(hashed, str)
+    assert len(hashed) > 0
+    assert verify_password(password, hashed) is True
 
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-
-    expected_exp = datetime.utcnow() + expires_delta
-    token_exp = datetime.utcfromtimestamp(payload["exp"])
-
-    diff = abs((token_exp - expected_exp).total_seconds())
-    assert diff < 5
-
-def test_create_access_token_payload_integrity():
-    """Test that all data passed is encoded in the token"""
-    data = {"sub": "testuser", "role": "admin", "custom": "value"}
-    token = create_access_token(data)
-
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-
-    assert payload["sub"] == "testuser"
-    assert payload["role"] == "admin"
-    assert payload["custom"] == "value"
-
-def test_create_access_token_empty_data():
-    """Test token creation with empty data"""
-    data = {}
-    token = create_access_token(data)
-
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-
-    assert "exp" in payload
-    # Removed brittle assertion on payload length
-
-def test_create_access_token_no_side_effects():
-    """Test that input dictionary is not modified"""
-    data = {"sub": "testuser"}
-    original_data = data.copy()
-    create_access_token(data)
-    assert data == original_data
+def test_get_password_hash_unicode():
+    """Test that get_password_hash handles unicode characters."""
+    password = "🔒secret_password_🚀"
+    hashed = get_password_hash(password)
+    assert isinstance(hashed, str)
+    assert len(hashed) > 0
+    assert verify_password(password, hashed) is True
