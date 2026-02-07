@@ -161,8 +161,8 @@ async def cast_vote(token: str, vote_data: VoteCreate, db: Session = Depends(get
     db.add(vote)
 
     # Update candidate vote count
-    candidate.vote_count += 1
-
+    candidate.vote_count = Candidate.vote_count + 1
+    
     # Update queue status
     queue_entry.status = QueueStatus.VOTED
 
