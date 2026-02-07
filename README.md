@@ -194,7 +194,7 @@ The app uses [Resend](https://resend.com) for sending voting links.
 3. Build command: `npm run build`
 4. Output directory: `dist`
 5. Add environment variable:
-   - `VITE_API_URL` (your backend URL)
+   - `VITE_API_BASE` (your backend URL)
 
 ## 📝 API Documentation
 
