@@ -30,21 +30,22 @@ async def get_dashboard_stats(
     # Calculate overall voter turnout
     total_votes = db.query(Vote).count()
 
-    active_finished_elections = db.query(Election).filter(
+    # Calculate eligible voters per election
+    eligible_elections = db.query(Election).filter(
         Election.status.in_([ElectionStatus.ACTIVE, ElectionStatus.FINISHED])
     ).all()
 
-    # Get student counts per department for calculation optimization
-    student_counts = db.query(
+    # Pre-calculate student counts by department
+    dept_counts = db.query(
         User.department_id, func.count(User.id)
     ).filter(
         User.role == UserRole.STUDENT
     ).group_by(User.department_id).all()
 
-    dept_count_map = {d_id: count for d_id, count in student_counts if d_id is not None}
+    dept_count_map = {d_id: count for d_id, count in dept_counts}
 
     total_eligible = 0
-    for election in active_finished_elections:
+    for election in eligible_elections:
         if election.department_id:
             total_eligible += dept_count_map.get(election.department_id, 0)
         else:
