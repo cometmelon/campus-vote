@@ -1,7 +1,10 @@
 """Seed demo data for development"""
 from datetime import datetime, timedelta
 import logging
+import secrets
+import string
 
+from config import settings
 from database import SessionLocal
 from models import User, UserRole, Department, Election, ElectionStatus, Candidate, Club, ClubMember, MemberRole
 from routers.auth import get_password_hash
@@ -15,7 +18,7 @@ def seed_demo_data():
     
     try:
         # Check if already seeded
-        if db.query(User).filter(User.student_id == "admin").first():
+        if db.query(User).filter(User.student_id == settings.ADMIN_STUDENT_ID).first():
             logger.info("Database already seeded, skipping...")
             return
         
@@ -37,11 +40,25 @@ def seed_demo_data():
         cse_dept = departments[0]
         ece_dept = departments[1]
         
+        # Determine admin password
+        admin_password = settings.ADMIN_PASSWORD
+        if not admin_password:
+            # Generate a secure random password if not provided
+            alphabet = string.ascii_letters + string.digits
+            admin_password = ''.join(secrets.choice(alphabet) for i in range(16))
+            print("\n=========================================================")
+            print("⚠️  ADMIN_PASSWORD not set. Generated random password:")
+            print(f"👉  {admin_password}")
+            print("=========================================================\n")
+            logger.warning("Generated random admin password")
+        else:
+            logger.info("Using configured ADMIN_PASSWORD.")
+
         # Create admin user
         admin = User(
-            student_id="admin",
-            email="admin@campusvote.edu",
-            password_hash=get_password_hash("admin"),
+            student_id=settings.ADMIN_STUDENT_ID,
+            email=settings.ADMIN_EMAIL,
+            password_hash=get_password_hash(admin_password),
             name="Admin User",
             role=UserRole.ADMIN
         )
@@ -198,4 +215,7 @@ def seed_demo_data():
 
 
 if __name__ == "__main__":
+    from database import Base, engine
+    print("Creating database tables...")
+    Base.metadata.create_all(bind=engine)
     seed_demo_data()

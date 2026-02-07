@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
+    # Admin Seed
+    ADMIN_EMAIL: str = "admin@campusvote.edu"
+    ADMIN_STUDENT_ID: str = "admin"
+    ADMIN_PASSWORD: Optional[str] = None
+
     # Email (Resend)
     RESEND_API_KEY: Optional[str] = None
     FROM_EMAIL: str = "noreply@campusvote.edu"
