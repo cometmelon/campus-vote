@@ -26,7 +26,7 @@ class UserBase(BaseModel):
     student_id: str
     email: EmailStr
     name: str
-    role: UserRole = UserRole.STUDENT
+
     department_id: Optional[UUID] = None
 
 
@@ -36,6 +36,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: UUID
+    role: UserRole
     created_at: datetime
 
     class Config:
