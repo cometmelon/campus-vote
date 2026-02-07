@@ -26,17 +26,21 @@ def create_voting_queue_entries(
     
     first_batch_count = 0
     
-    for i, student in enumerate(students):
-        batch_number = (i // batch_size) + 1
-        
-        # Check if entry already exists
-        existing = db.query(VotingQueue).filter(
+    # Fetch existing user_ids for this election in bulk to avoid N+1 queries
+    existing_user_ids = {
+        uid for (uid,) in db.query(VotingQueue.user_id)
+        .filter(
             VotingQueue.election_id == election.id,
-            VotingQueue.user_id == student.id
-        ).first()
-        
-        if existing:
+            VotingQueue.user_id.in_([s.id for s in students])
+        )
+        .all()
+    }
+
+    for i, student in enumerate(students):
+        if student.id in existing_user_ids:
             continue
+
+        batch_number = (i // batch_size) + 1
         
         entry = VotingQueue(
             election_id=election.id,
