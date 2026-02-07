@@ -2,7 +2,7 @@
 from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from database import get_db
 from models import User, UserRole, Election, ElectionStatus, Club, Vote, Department
@@ -18,17 +18,38 @@ async def get_dashboard_stats(
     admin: User = Depends(get_admin_user)
 ):
     """Get dashboard KPI stats (Admin only)"""
-    total_students = db.query(User).filter(User.role == UserRole.STUDENT).count()
-    active_elections = db.query(Election).filter(
-        Election.status == ElectionStatus.ACTIVE
-    ).count()
-    registered_clubs = db.query(Club).count()
+    # Optimized query to fetch all counts in one round-trip
+    stmt = select(
+        select(func.count(User.id)).filter(User.role == UserRole.STUDENT).scalar_subquery(),
+        select(func.count(Election.id)).filter(Election.status == ElectionStatus.ACTIVE).scalar_subquery(),
+        select(func.count(Club.id)).scalar_subquery()
+    )
+    result = db.execute(stmt).one()
+    total_students, active_elections, registered_clubs = result
     
     # Calculate overall voter turnout
     total_votes = db.query(Vote).count()
-    total_eligible = total_students * db.query(Election).filter(
+
+    active_finished_elections = db.query(Election).filter(
         Election.status.in_([ElectionStatus.ACTIVE, ElectionStatus.FINISHED])
-    ).count()
+    ).all()
+
+    # Get student counts per department for calculation optimization
+    student_counts = db.query(
+        User.department_id, func.count(User.id)
+    ).filter(
+        User.role == UserRole.STUDENT
+    ).group_by(User.department_id).all()
+
+    dept_count_map = {d_id: count for d_id, count in student_counts if d_id is not None}
+
+    total_eligible = 0
+    for election in active_finished_elections:
+        if election.department_id:
+            total_eligible += dept_count_map.get(election.department_id, 0)
+        else:
+            total_eligible += total_students
+
     voter_turnout = (total_votes / total_eligible * 100) if total_eligible > 0 else 0
     
     return DashboardStats(
@@ -48,15 +69,29 @@ async def get_department_turnout(
     departments = db.query(Department).all()
     result = []
     
+    # Batch query for student counts
+    student_counts_query = db.query(
+        User.department_id,
+        func.count(User.id)
+    ).filter(
+        User.role == UserRole.STUDENT
+    ).group_by(User.department_id).all()
+
+    # Convert to dict for O(1) lookup
+    student_counts = {dept_id: count for dept_id, count in student_counts_query}
+
+    # Batch query for vote counts
+    vote_counts_query = db.query(
+        User.department_id,
+        func.count(Vote.id)
+    ).select_from(Vote).join(User).group_by(User.department_id).all()
+
+    # Convert to dict
+    vote_counts = {dept_id: count for dept_id, count in vote_counts_query}
+
     for dept in departments:
-        dept_students = db.query(User).filter(
-            User.department_id == dept.id,
-            User.role == UserRole.STUDENT
-        ).count()
-        
-        dept_votes = db.query(Vote).join(User).filter(
-            User.department_id == dept.id
-        ).count()
+        dept_students = student_counts.get(dept.id, 0)
+        dept_votes = vote_counts.get(dept.id, 0)
         
         turnout = (dept_votes / dept_students * 100) if dept_students > 0 else 0
         result.append(DepartmentTurnout(

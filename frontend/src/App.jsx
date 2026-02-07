@@ -12,7 +12,6 @@ import VotePage from '@/pages/VotePage';
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated, loading } = useAuth();
-    const [, setLocation] = useLocation();
 
     if (loading) {
         return (
@@ -23,8 +22,7 @@ function ProtectedRoute({ children }) {
     }
 
     if (!isAuthenticated) {
-        setLocation('/login');
-        return null;
+        return <Redirect to="/login" />;
     }
 
     return children;
@@ -32,7 +30,6 @@ function ProtectedRoute({ children }) {
 
 function AdminRoute({ children }) {
     const { isAdmin, loading } = useAuth();
-    const [, setLocation] = useLocation();
 
     if (loading) {
         return (
@@ -43,8 +40,7 @@ function AdminRoute({ children }) {
     }
 
     if (!isAdmin) {
-        setLocation('/dashboard');
-        return null;
+        return <Redirect to="/dashboard" />;
     }
 
     return children;

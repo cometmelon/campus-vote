@@ -1,4 +1,7 @@
 """Seed demo data for development"""
+import os
+import secrets
+import string
 from datetime import datetime, timedelta
 import logging
 
@@ -37,11 +40,24 @@ def seed_demo_data():
         cse_dept = departments[0]
         ece_dept = departments[1]
         
+        # Get admin credentials from environment or generate them
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@campusvote.edu")
+        admin_password = os.environ.get("ADMIN_PASSWORD")
+
+        if not admin_password:
+            # Generate a secure random password
+            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+            admin_password = ''.join(secrets.choice(alphabet) for i in range(16))
+            logger.warning("================================================================")
+            logger.warning(f"ADMIN PASSWORD NOT SET. GENERATED: {admin_password}")
+            logger.warning("PLEASE SAVE THIS PASSWORD OR SET ADMIN_PASSWORD ENV VARIABLE.")
+            logger.warning("================================================================")
+
         # Create admin user
         admin = User(
             student_id="admin",
-            email="admin@campusvote.edu",
-            password_hash=get_password_hash("admin"),
+            email=admin_email,
+            password_hash=get_password_hash(admin_password),
             name="Admin User",
             role=UserRole.ADMIN
         )
