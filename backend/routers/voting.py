@@ -55,7 +55,9 @@ async def send_voting_links(
     )
     
     # Send emails for first batch
-    first_batch = db.query(VotingQueue).filter(
+    first_batch = db.query(VotingQueue).options(
+        joinedload(VotingQueue.user)
+    ).filter(
         VotingQueue.election_id == election.id,
         VotingQueue.batch_number == 1
     ).all()
