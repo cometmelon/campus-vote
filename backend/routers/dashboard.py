@@ -2,7 +2,7 @@
 from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from database import get_db
 from models import User, UserRole, Election, ElectionStatus, Club, Vote, Department
@@ -18,11 +18,14 @@ async def get_dashboard_stats(
     admin: User = Depends(get_admin_user)
 ):
     """Get dashboard KPI stats (Admin only)"""
-    total_students = db.query(User).filter(User.role == UserRole.STUDENT).count()
-    active_elections = db.query(Election).filter(
-        Election.status == ElectionStatus.ACTIVE
-    ).count()
-    registered_clubs = db.query(Club).count()
+    # Optimized query to fetch all counts in one round-trip
+    stmt = select(
+        select(func.count(User.id)).filter(User.role == UserRole.STUDENT).scalar_subquery(),
+        select(func.count(Election.id)).filter(Election.status == ElectionStatus.ACTIVE).scalar_subquery(),
+        select(func.count(Club.id)).scalar_subquery()
+    )
+    result = db.execute(stmt).one()
+    total_students, active_elections, registered_clubs = result
     
     # Calculate overall voter turnout
     total_votes = db.query(Vote).count()
