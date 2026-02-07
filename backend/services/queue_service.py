@@ -20,6 +20,9 @@ def create_voting_queue_entries(
     Create voting queue entries for students with batch assignment.
     Returns (total_batches, first_batch_count)
     """
+    if batch_size <= 0:
+        return 0, 0
+
     total_students = len(students)
     total_batches = math.ceil(total_students / batch_size)
     expires_at = datetime.utcnow() + timedelta(hours=settings.VOTING_LINK_EXPIRE_HOURS)
