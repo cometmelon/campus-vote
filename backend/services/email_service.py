@@ -1,18 +1,18 @@
 """Email service using Resend"""
 import logging
 from typing import List
-from uuid import UUID
+from datetime import datetime
+
+import resend
 
 from config import settings
-from database import SessionLocal
+from models import QueueStatus
 
 logger = logging.getLogger(__name__)
 
 
 def send_voting_emails(db, queue_entries: List, election) -> int:
     """Send voting emails to users in queue"""
-    from datetime import datetime
-    from models import QueueStatus
     
     sent_count = 0
     
@@ -22,7 +22,6 @@ def send_voting_emails(db, queue_entries: List, election) -> int:
             
             if settings.RESEND_API_KEY:
                 # Real email sending with Resend
-                import resend
                 resend.api_key = settings.RESEND_API_KEY
                 
                 resend.Emails.send({
