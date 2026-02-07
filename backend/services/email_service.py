@@ -1,16 +1,18 @@
 """Email service using Resend"""
 import logging
 from typing import List
+from datetime import datetime
+
+import resend
 
 from config import settings
+from models import QueueStatus
 
 logger = logging.getLogger(__name__)
 
 
 def send_voting_emails(db, queue_entries: List, election) -> int:
     """Send voting emails to users in queue"""
-    from datetime import datetime
-    from models import QueueStatus
     
     sent_count = 0
     
@@ -20,7 +22,6 @@ def send_voting_emails(db, queue_entries: List, election) -> int:
             
             if settings.RESEND_API_KEY:
                 # Real email sending with Resend
-                import resend
                 resend.api_key = settings.RESEND_API_KEY
                 
                 resend.Emails.send({
@@ -51,3 +52,23 @@ def send_voting_emails(db, queue_entries: List, election) -> int:
     
     db.commit()
     return sent_count
+
+
+def send_voting_emails_bg(queue_entry_ids: List[UUID], election_id: UUID):
+    """Background task to send voting emails"""
+    from models import VotingQueue, Election
+
+    db = SessionLocal()
+    try:
+        election = db.query(Election).filter(Election.id == election_id).first()
+        if not election:
+            logger.error(f"Election {election_id} not found in background task")
+            return
+
+        queue_entries = db.query(VotingQueue).filter(VotingQueue.id.in_(queue_entry_ids)).all()
+        logger.info(f"Processing background email task for {len(queue_entries)} entries")
+        send_voting_emails(db, queue_entries, election)
+    except Exception as e:
+        logger.error(f"Background email task failed: {e}")
+    finally:
+        db.close()
