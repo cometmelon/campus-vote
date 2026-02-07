@@ -98,7 +98,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         name=user_data.name,
-        role=user_data.role,
+        role=UserRole.STUDENT,
         department_id=user_data.department_id
     )
     db.add(user)
