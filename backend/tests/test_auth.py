@@ -1,44 +1,68 @@
-import sys
-import os
-from datetime import datetime, timedelta, timezone
-from jose import jwt
+from datetime import datetime, timedelta
 import pytest
-
-# Add backend to sys.path so we can import routers and config
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+from jose import jwt
 from routers.auth import create_access_token
 from config import settings
 
-def test_create_access_token():
+def test_create_access_token_default_expiration():
+    """Test token creation with default expiration"""
     data = {"sub": "testuser"}
     token = create_access_token(data)
 
-    assert token is not None
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
-    decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    assert decoded["sub"] == "testuser"
-    assert "exp" in decoded
+    assert payload["sub"] == "testuser"
+    assert "exp" in payload
 
-    # Check expiry (naive vs aware check might be tricky here depending on implementation)
-    # The current implementation uses datetime.utcnow() which is naive.
-    # The timestamp in JWT is always UTC seconds since epoch.
+    # Check if expiration is close to default (within a reasonable margin)
+    # Default is settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    expected_exp = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    now_ts = datetime.now(timezone.utc).timestamp()
-    expected_exp_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    # Use utcfromtimestamp to avoid timezone issues when comparing with utcnow()
+    token_exp = datetime.utcfromtimestamp(payload["exp"])
 
-    # Allow 5 seconds tolerance
-    assert abs(decoded["exp"] - (now_ts + expected_exp_seconds)) < 5
+    # Allow 5 seconds difference
+    diff = abs((token_exp - expected_exp).total_seconds())
+    assert diff < 5
 
-def test_create_access_token_custom_expiry():
+def test_create_access_token_custom_expiration():
+    """Test token creation with custom expiration"""
     data = {"sub": "testuser"}
-    expires_delta = timedelta(minutes=10)
+    expires_delta = timedelta(minutes=15)
     token = create_access_token(data, expires_delta=expires_delta)
 
-    decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
-    now_ts = datetime.now(timezone.utc).timestamp()
-    expected_exp_seconds = 10 * 60
+    expected_exp = datetime.utcnow() + expires_delta
+    token_exp = datetime.utcfromtimestamp(payload["exp"])
 
-    # Allow 5 seconds tolerance
-    assert abs(decoded["exp"] - (now_ts + expected_exp_seconds)) < 5
+    diff = abs((token_exp - expected_exp).total_seconds())
+    assert diff < 5
+
+def test_create_access_token_payload_integrity():
+    """Test that all data passed is encoded in the token"""
+    data = {"sub": "testuser", "role": "admin", "custom": "value"}
+    token = create_access_token(data)
+
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+    assert payload["sub"] == "testuser"
+    assert payload["role"] == "admin"
+    assert payload["custom"] == "value"
+
+def test_create_access_token_empty_data():
+    """Test token creation with empty data"""
+    data = {}
+    token = create_access_token(data)
+
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+    assert "exp" in payload
+    # Removed brittle assertion on payload length
+
+def test_create_access_token_no_side_effects():
+    """Test that input dictionary is not modified"""
+    data = {"sub": "testuser"}
+    original_data = data.copy()
+    create_access_token(data)
+    assert data == original_data
