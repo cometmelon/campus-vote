@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 
 from config import settings
@@ -15,10 +15,11 @@ from models import (
 )
 from schemas import (
     VoteCreate, VoteResponse, SendVotingLinksRequest, 
-    SendVotingLinksResponse, ElectionWithCandidates
+    SendVotingLinksResponse, ElectionWithCandidates,
+    VotingValidateResponse
 )
 from routers.auth import get_current_user, get_admin_user
-from services.email_service import send_voting_emails
+from services.email_service import send_voting_emails, send_voting_emails_bg
 from services.queue_service import create_voting_queue_entries
 
 router = APIRouter(prefix="/voting", tags=["Voting"])
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/voting", tags=["Voting"])
 @router.post("/send-links", response_model=SendVotingLinksResponse)
 async def send_voting_links(
     request: SendVotingLinksRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user)
 ):
@@ -60,7 +62,7 @@ async def send_voting_links(
         VotingQueue.batch_number == 1
     ).all()
     
-    send_voting_emails(db, first_batch, election)
+    background_tasks.add_task(send_voting_emails_bg, [e.id for e in first_batch], election.id)
     
     return SendVotingLinksResponse(
         total_students=len(students),
@@ -70,7 +72,7 @@ async def send_voting_links(
     )
 
 
-@router.get("/validate/{token}")
+@router.get("/validate/{token}", response_model=VotingValidateResponse)
 async def validate_voting_token(token: str, db: Session = Depends(get_db)):
     """Validate a voting token and return election info"""
     queue_entry = db.query(VotingQueue).filter(
@@ -96,7 +98,6 @@ async def validate_voting_token(token: str, db: Session = Depends(get_db)):
     
     return {
         "election": election,
-        "user_id": str(queue_entry.user_id),
         "valid": True
     }
 
@@ -152,7 +153,7 @@ async def cast_vote(
     db.add(vote)
     
     # Update candidate vote count
-    candidate.vote_count += 1
+    candidate.vote_count = Candidate.vote_count + 1
     
     # Update queue status
     queue_entry.status = QueueStatus.VOTED
