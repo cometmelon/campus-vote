@@ -180,7 +180,7 @@ class SendVotingLinksResponse(BaseModel):
     message: str
 
 
-class VotingValidateResponse(BaseModel):
+class TokenValidationResponse(BaseModel):
     election: ElectionWithCandidates
     valid: bool
 

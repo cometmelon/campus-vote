@@ -21,11 +21,9 @@ from models import (
     QueueStatus,
 )
 from schemas import (
-    VoteCreate,
-    VoteResponse,
-    SendVotingLinksRequest,
-    SendVotingLinksResponse,
-    ElectionWithCandidates,
+    VoteCreate, VoteResponse, SendVotingLinksRequest, 
+    SendVotingLinksResponse, ElectionWithCandidates,
+    TokenValidationResponse
 )
 from routers.auth import get_current_user, get_admin_user
 from services.email_service import send_voting_emails, send_voting_emails_bg
@@ -76,7 +74,7 @@ async def send_voting_links(
     )
 
 
-@router.get("/validate/{token}", response_model=VotingValidateResponse)
+@router.get("/validate/{token}", response_model=TokenValidationResponse)
 async def validate_voting_token(token: str, db: Session = Depends(get_db)):
     """Validate a voting token and return election info"""
     queue_entry = (
@@ -95,15 +93,15 @@ async def validate_voting_token(token: str, db: Session = Depends(get_db)):
         queue_entry.status = QueueStatus.EXPIRED
         db.commit()
         raise HTTPException(status_code=400, detail="Voting token expired")
-
-    election = (
-        db.query(Election)
-        .options(joinedload(Election.candidates))
-        .filter(Election.id == queue_entry.election_id)
-        .first()
-    )
-
-    return {"election": election, "user_id": str(queue_entry.user_id), "valid": True}
+    
+    election = db.query(Election).options(
+        joinedload(Election.candidates)
+    ).filter(Election.id == queue_entry.election_id).first()
+    
+    return {
+        "election": election,
+        "valid": True
+    }
 
 
 @router.post("/cast/{token}", response_model=VoteResponse)
