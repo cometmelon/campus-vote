@@ -48,15 +48,29 @@ async def get_department_turnout(
     departments = db.query(Department).all()
     result = []
     
+    # Batch query for student counts
+    student_counts_query = db.query(
+        User.department_id,
+        func.count(User.id)
+    ).filter(
+        User.role == UserRole.STUDENT
+    ).group_by(User.department_id).all()
+
+    # Convert to dict for O(1) lookup
+    student_counts = {dept_id: count for dept_id, count in student_counts_query}
+
+    # Batch query for vote counts
+    vote_counts_query = db.query(
+        User.department_id,
+        func.count(Vote.id)
+    ).select_from(Vote).join(User).group_by(User.department_id).all()
+
+    # Convert to dict
+    vote_counts = {dept_id: count for dept_id, count in vote_counts_query}
+
     for dept in departments:
-        dept_students = db.query(User).filter(
-            User.department_id == dept.id,
-            User.role == UserRole.STUDENT
-        ).count()
-        
-        dept_votes = db.query(Vote).join(User).filter(
-            User.department_id == dept.id
-        ).count()
+        dept_students = student_counts.get(dept.id, 0)
+        dept_votes = vote_counts.get(dept.id, 0)
         
         turnout = (dept_votes / dept_students * 100) if dept_students > 0 else 0
         result.append(DepartmentTurnout(

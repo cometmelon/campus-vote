@@ -1,14 +1,22 @@
 """Application configuration using pydantic-settings"""
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 
 
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./campusvote.db"
     
+    # CORS
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ]
+
     # JWT
-    SECRET_KEY: str = "campusvote-secret-key-change-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
