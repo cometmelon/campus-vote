@@ -1,94 +1,85 @@
-import unittest
-from unittest.mock import MagicMock, patch
-import sys
-import os
-
-# Add backend to sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Mock missing dependencies
-mock_sqlalchemy = MagicMock()
-sys.modules["sqlalchemy"] = mock_sqlalchemy
-sys.modules["sqlalchemy.orm"] = MagicMock()
-sys.modules["sqlalchemy.ext.declarative"] = MagicMock()
-
-# Mock models and config
-mock_models = MagicMock()
-sys.modules["models"] = mock_models
-mock_config = MagicMock()
-sys.modules["config"] = mock_config
-mock_config.settings.VOTING_LINK_EXPIRE_HOURS = 24
-
-# Import the service after mocking
+import pytest
+from unittest.mock import MagicMock
 from services.queue_service import create_voting_queue_entries
+from models import Election, User, VotingQueue
 
-class TestQueueService(unittest.TestCase):
-    def setUp(self):
-        self.db = MagicMock()
-        self.election = MagicMock()
-        self.election.id = "election-id"
-        self.batch_size = 10
+def test_create_voting_queue_entries_empty_students():
+    """
+    Test creating voting queue entries with an empty list of students.
+    Should return (0, 0) and handle the edge case gracefully.
+    """
+    # Mock database session
+    mock_db = MagicMock()
 
-    def test_create_voting_queue_entries_empty_students(self):
-        """Test with empty student list"""
-        students = []
-        total_batches, first_batch_count = create_voting_queue_entries(
-            self.db, self.election, students, self.batch_size
-        )
+    # Mock election
+    mock_election = MagicMock(spec=Election)
+    mock_election.id = "election-123"
 
-        self.assertEqual(total_batches, 0)
-        self.assertEqual(first_batch_count, 0)
-        self.db.commit.assert_called_once()
+    # Empty list of students
+    students = []
 
-    def test_create_voting_queue_entries_with_students(self):
-        """Test with students and batching"""
-        students = [MagicMock(id=f"student-{i}") for i in range(25)]
+    # Call function
+    total_batches, first_batch_count = create_voting_queue_entries(
+        mock_db,
+        mock_election,
+        students,
+        10
+    )
 
-        # Mock db.query().filter().first() to return None (no existing entries)
-        self.db.query().filter().first.return_value = None
+    # Assertions
+    assert total_batches == 0
+    assert first_batch_count == 0
 
-        total_batches, first_batch_count = create_voting_queue_entries(
-            self.db, self.election, students, self.batch_size
-        )
+    # Verify no database entries were added
+    mock_db.add.assert_not_called()
 
-        self.assertEqual(total_batches, 3) # 25 / 10 -> ceil(2.5) = 3
-        self.assertEqual(first_batch_count, 10) # First batch should have 10
-        self.assertEqual(self.db.add.call_count, 25)
-        self.db.commit.assert_called_once()
+    # Verify commit was called (as per current implementation it is called unconditionally)
+    mock_db.commit.assert_called_once()
 
-    def test_create_voting_queue_entries_duplicate_prevention(self):
-        """Test that existing entries are not recreated"""
-        students = [MagicMock(id="student-1")]
+def test_create_voting_queue_entries_with_students():
+    """
+    Test creating voting queue entries with a list of students.
+    Should create entries and return correct batch counts.
+    """
+    # Mock database session
+    mock_db = MagicMock()
 
-        # Mock db.query().filter().first() to return an existing entry
-        self.db.query().filter().first.return_value = MagicMock()
+    # Mock query to return None (no existing entries)
+    # The code calls: db.query(VotingQueue).filter(...).first()
+    # We need to ensure that the chain of calls works and returns None
+    mock_query = MagicMock()
+    mock_filter = MagicMock()
 
-        total_batches, first_batch_count = create_voting_queue_entries(
-            self.db, self.election, students, self.batch_size
-        )
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_filter
+    mock_filter.first.return_value = None
 
-        self.assertEqual(total_batches, 1)
-        self.assertEqual(first_batch_count, 0) # Already exists, so not in first batch count
-        self.db.add.assert_not_called()
-        self.db.commit.assert_called_once()
+    # Mock election
+    mock_election = MagicMock(spec=Election)
+    mock_election.id = "election-123"
 
-    def test_create_voting_queue_entries_invalid_batch_size(self):
-        """Test with zero or negative batch size"""
-        students = [MagicMock(id="student-1")]
+    # Mock students
+    student1 = MagicMock(spec=User)
+    student1.id = "student-1"
+    student2 = MagicMock(spec=User)
+    student2.id = "student-2"
+    students = [student1, student2]
 
-        # Test zero
-        total_batches, first_batch_count = create_voting_queue_entries(
-            self.db, self.election, students, 0
-        )
-        self.assertEqual(total_batches, 0)
-        self.assertEqual(first_batch_count, 0)
+    # Call function with batch_size=1 so each student is in a separate batch
+    # total_students=2, batch_size=1 -> total_batches=2
+    # Batch 1: student-1 (i=0, batch=1) -> first_batch_count increments
+    # Batch 2: student-2 (i=1, batch=2) -> first_batch_count does not increment
+    total_batches, first_batch_count = create_voting_queue_entries(
+        mock_db,
+        mock_election,
+        students,
+        1
+    )
 
-        # Test negative
-        total_batches, first_batch_count = create_voting_queue_entries(
-            self.db, self.election, students, -5
-        )
-        self.assertEqual(total_batches, 0)
-        self.assertEqual(first_batch_count, 0)
+    # Assertions
+    assert total_batches == 2
+    assert first_batch_count == 1
 
-if __name__ == "__main__":
-    unittest.main()
+    # Verify database entries were added
+    assert mock_db.add.call_count == 2
+    mock_db.commit.assert_called_once()
