@@ -30,7 +30,7 @@ services:
       - key: FRONTEND_URL
         value: https://campusvote.onrender.com
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.7"
 
   # Frontend Static Site
   - type: web
