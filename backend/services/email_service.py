@@ -49,7 +49,7 @@ def send_voting_emails_bg(election_id, batch_number: int):
         sent_count = 0
         for entry in queue_entries:
             try:
-                voting_url = f"http://localhost:5174/vote/{entry.voting_token}"
+                voting_url = f"{settings.FRONTEND_URL or 'http://localhost:5174'}/vote/{entry.voting_token}"
 
                 if settings.RESEND_API_KEY:
                     # Real email sending with Resend
@@ -107,7 +107,7 @@ def send_voting_emails(db, queue_entries: List, election) -> int:
 
     for entry in queue_entries:
         try:
-            voting_url = f"http://localhost:5174/vote/{entry.voting_token}"
+            voting_url = f"{settings.FRONTEND_URL or 'http://localhost:5174'}/vote/{entry.voting_token}"
 
             if settings.RESEND_API_KEY:
                 # Real email sending with Resend
