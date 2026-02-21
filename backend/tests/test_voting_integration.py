@@ -13,6 +13,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from main import app
 from database import get_db, Base
 from models import (
+    Department,
+    Election,
+    Candidate,
+    Vote,
+    Club,
     User,
     UserRole,
     Election,
@@ -22,12 +27,17 @@ from models import (
     QueueStatus,
 )
 from config import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Setup test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_integration.db"
+from sqlalchemy.pool import StaticPool
+
+# Setup test database - Use in-memory for integration tests too to avoid Windows file lock issues
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -53,13 +63,7 @@ def client():
     with patch("services.email_service.SessionLocal", TestingSessionLocal):
         with TestClient(app) as c:
             yield c
-            import os
-
-            (
-                os.remove("test_integration.db")
-                if os.path.exists("test_integration.db")
-                else None
-            )
+            # No need to remove file, it's in-memory
 
 
 @pytest.fixture
@@ -95,8 +99,8 @@ def setup_data():
     # Create Election
     election = Election(
         title="Test Election",
-        start_date=datetime.utcnow(),
-        end_date=datetime.utcnow() + timedelta(hours=1),
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc) + timedelta(hours=1),
         status=ElectionStatus.ACTIVE,
         department_id=dept.id,
     )

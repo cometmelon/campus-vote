@@ -1,6 +1,6 @@
 """User model"""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum
@@ -45,7 +45,7 @@ class User(Base):
     name = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.STUDENT)
     department_id = Column(GUID(), ForeignKey("departments.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     department = relationship("Department", back_populates="users")

@@ -40,7 +40,7 @@ export default function MainLayout({ children }) {
                         </div>
                         <div>
                             <span className="text-lg font-bold text-white block leading-tight">CampusVote</span>
-                            <span className="text-xs text-sidebar-foreground/60">Admin Console</span>
+                            <span className="text-xs text-sidebar-foreground/60">{isAdmin ? 'Admin Console' : 'Student Portal'}</span>
                         </div>
                     </div>
                 </div>

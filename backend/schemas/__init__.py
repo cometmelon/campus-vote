@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from models.user import UserRole
 
@@ -39,8 +39,7 @@ class UserResponse(UserBase):
     role: UserRole
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserWithDepartment(UserResponse):
@@ -61,8 +60,7 @@ class DepartmentCreate(DepartmentBase):
 class DepartmentResponse(DepartmentBase):
     id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Election schemas
@@ -85,8 +83,7 @@ class CandidateResponse(CandidateBase):
     election_id: UUID
     vote_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ElectionBase(BaseModel):
@@ -106,8 +103,7 @@ class ElectionResponse(ElectionBase):
     id: UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ElectionWithCandidates(ElectionResponse):
@@ -123,8 +119,7 @@ class ElectionListItem(BaseModel):
     start_date: datetime
     end_date: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Vote schemas
@@ -140,8 +135,7 @@ class VoteResponse(BaseModel):
     candidate_id: UUID
     voted_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Voting Queue schemas
@@ -163,8 +157,7 @@ class VotingQueueResponse(BaseModel):
     notified_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SendVotingLinksRequest(BaseModel):
@@ -207,16 +200,14 @@ class ClubMemberResponse(BaseModel):
     joined_at: datetime
     user: Optional[UserResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClubResponse(ClubBase):
     id: UUID
     member_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClubWithMembers(ClubResponse):

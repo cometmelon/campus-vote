@@ -1,6 +1,6 @@
 """Voting Queue model for batch-based voting"""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Integer
@@ -28,7 +28,7 @@ class VotingQueue(Base):
     batch_number = Column(Integer, default=1)
     notified_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     election = relationship("Election", back_populates="voting_queue")

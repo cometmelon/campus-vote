@@ -1,6 +1,6 @@
 """Vote model"""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
@@ -16,7 +16,7 @@ class Vote(Base):
     election_id = Column(GUID(), ForeignKey("elections.id"), nullable=False)
     user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
     candidate_id = Column(GUID(), ForeignKey("candidates.id"), nullable=False)
-    voted_at = Column(DateTime, default=datetime.utcnow)
+    voted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Ensure one vote per user per election
     __table_args__ = (

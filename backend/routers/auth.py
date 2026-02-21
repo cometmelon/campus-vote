@@ -1,6 +1,6 @@
 """Authentication router"""
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Union
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,9 +17,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
 
 
-def get_password_hash(password: str) -> bytes:
+def get_password_hash(password: str) -> str:
     """Hash password using bcrypt"""
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: Union[str, bytes]) -> bool:

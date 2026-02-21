@@ -1,6 +1,6 @@
 """Election model"""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Integer
@@ -26,7 +26,7 @@ class Election(Base):
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
     batch_size = Column(Integer, default=60)  # For load balancing
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     department = relationship("Department", back_populates="elections")

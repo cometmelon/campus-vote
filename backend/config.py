@@ -1,9 +1,11 @@
 """Application configuration using pydantic-settings"""
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+
     # Database
     DATABASE_URL: str = "sqlite:///./campusvote.db"
     
@@ -33,9 +35,7 @@ class Settings(BaseSettings):
     VOTING_LINK_EXPIRE_HOURS: int = 24
     DEFAULT_BATCH_SIZE: int = 60
     
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+
 
 
 settings = Settings()

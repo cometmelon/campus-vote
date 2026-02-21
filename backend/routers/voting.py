@@ -1,7 +1,7 @@
 """Voting router with queue management"""
 
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import List
 from uuid import UUID
 

@@ -90,12 +90,19 @@ export default function ElectionsPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (formData.candidates.length === 0) {
+        // Auto-add any filled candidate before submitting
+        let candidates = [...formData.candidates];
+        if (newCandidate.name && newCandidate.role) {
+            candidates.push({ ...newCandidate });
+            setNewCandidate({ name: '', role: '', photo_url: '', manifesto: '' });
+        }
+        if (candidates.length === 0) {
             alert('Please add at least one candidate');
             return;
         }
         const data = {
             ...formData,
+            candidates,
             department_id: formData.department_id === 'all' ? null : formData.department_id || null,
             start_date: new Date(formData.start_date).toISOString(),
             end_date: new Date(formData.end_date).toISOString(),

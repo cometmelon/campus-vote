@@ -78,7 +78,7 @@ class ApiClient {
     // Elections
     async getElections(status = null) {
         const params = status ? `?status=${status}` : '';
-        return this.request(`/elections${params}`);
+        return this.request(`/elections/${params}`);
     }
 
     async getElection(id) {
@@ -86,7 +86,7 @@ class ApiClient {
     }
 
     async createElection(data) {
-        return this.request('/elections', {
+        return this.request('/elections/', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -134,7 +134,7 @@ class ApiClient {
 
     // Clubs
     async getClubs() {
-        return this.request('/clubs');
+        return this.request('/clubs/');
     }
 
     async getClub(id) {
@@ -142,7 +142,7 @@ class ApiClient {
     }
 
     async createClub(data) {
-        return this.request('/clubs', {
+        return this.request('/clubs/', {
             method: 'POST',
             body: JSON.stringify(data),
         });

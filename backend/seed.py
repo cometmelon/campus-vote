@@ -2,7 +2,7 @@
 import os
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import secrets
 import string
@@ -99,7 +99,7 @@ def seed_demo_data():
         db.flush()
         
         # Create elections
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         elections = [
             Election(

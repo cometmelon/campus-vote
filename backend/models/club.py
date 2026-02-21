@@ -1,6 +1,6 @@
 """Club models"""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Text
@@ -31,7 +31,7 @@ class Club(Base):
     category = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
     status = Column(Enum(ClubStatus), default=ClubStatus.ACTIVE)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     members = relationship("ClubMember", back_populates="club", cascade="all, delete-orphan")
@@ -48,7 +48,7 @@ class ClubMember(Base):
     club_id = Column(GUID(), ForeignKey("clubs.id"), nullable=False)
     user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
     role = Column(Enum(MemberRole), default=MemberRole.MEMBER)
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     club = relationship("Club", back_populates="members")

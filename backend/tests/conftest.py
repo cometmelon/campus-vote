@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from database import Base, get_db
 from main import app
-from models import User, UserRole
+from models import User, UserRole, Department, Election, Candidate, Vote, VotingQueue, Club
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 

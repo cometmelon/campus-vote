@@ -1,6 +1,6 @@
 """Queue service for batch processing"""
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Tuple
 import math
 
@@ -25,7 +25,7 @@ def create_voting_queue_entries(
 
     total_students = len(students)
     total_batches = math.ceil(total_students / batch_size)
-    expires_at = datetime.utcnow() + timedelta(hours=settings.VOTING_LINK_EXPIRE_HOURS)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.VOTING_LINK_EXPIRE_HOURS)
     
     first_batch_count = 0
     

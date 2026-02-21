@@ -2,7 +2,8 @@
 
 import logging
 from typing import List
-from datetime import datetime
+from uuid import UUID
+from datetime import datetime, timezone
 
 import resend
 
@@ -80,7 +81,7 @@ def send_voting_emails_bg(election_id, batch_number: int):
 
                 # Update entry status
                 entry.status = QueueStatus.NOTIFIED
-                entry.notified_at = datetime.utcnow()
+                entry.notified_at = datetime.now(timezone.utc)
                 sent_count += 1
 
             except Exception as e:
@@ -147,22 +148,3 @@ def send_voting_emails(db, queue_entries: List, election) -> int:
     db.commit()
     return sent_count
 
-
-def send_voting_emails_bg(queue_entry_ids: List[UUID], election_id: UUID):
-    """Background task to send voting emails"""
-    from models import VotingQueue, Election
-
-    db = SessionLocal()
-    try:
-        election = db.query(Election).filter(Election.id == election_id).first()
-        if not election:
-            logger.error(f"Election {election_id} not found in background task")
-            return
-
-        queue_entries = db.query(VotingQueue).filter(VotingQueue.id.in_(queue_entry_ids)).all()
-        logger.info(f"Processing background email task for {len(queue_entries)} entries")
-        send_voting_emails(db, queue_entries, election)
-    except Exception as e:
-        logger.error(f"Background email task failed: {e}")
-    finally:
-        db.close()

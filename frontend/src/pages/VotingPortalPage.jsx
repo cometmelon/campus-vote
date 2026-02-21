@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Send, Users, Eye, StopCircle, Loader2, Mail } from 'lucide-react';
 
 export default function VotingPortalPage() {
@@ -16,6 +17,7 @@ export default function VotingPortalPage() {
     const queryClient = useQueryClient();
     const [selectedElection, setSelectedElection] = useState('');
     const [batchSize, setBatchSize] = useState('100');
+    const [viewVotesElectionId, setViewVotesElectionId] = useState(null);
 
     const { data: elections } = useQuery({
         queryKey: ['elections'],
@@ -26,6 +28,12 @@ export default function VotingPortalPage() {
         queryKey: ['activeElections'],
         queryFn: () => api.getActiveElections(),
         enabled: !isAdmin,
+    });
+
+    const { data: votesElection, isLoading: votesLoading } = useQuery({
+        queryKey: ['election', viewVotesElectionId],
+        queryFn: () => api.getElection(viewVotesElectionId),
+        enabled: !!viewVotesElectionId,
     });
 
     const sendLinksMutation = useMutation({
@@ -190,7 +198,11 @@ export default function VotingPortalPage() {
                                             </div>
 
                                             <div className="flex gap-3">
-                                                <Button variant="outline" className="flex-1 gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex-1 gap-2"
+                                                    onClick={() => setViewVotesElectionId(election.id)}
+                                                >
                                                     <Eye className="w-4 h-4" />
                                                     View Votes
                                                 </Button>
@@ -219,6 +231,44 @@ export default function VotingPortalPage() {
                             </div>
                         )}
                     </div>
+
+                    {/* View Votes Modal */}
+                    <Dialog open={!!viewVotesElectionId} onOpenChange={(open) => !open && setViewVotesElectionId(null)}>
+                        <DialogContent className="max-w-lg">
+                            <DialogHeader>
+                                <DialogTitle>{votesElection?.title || 'Election'} — Votes</DialogTitle>
+                                <DialogDescription>Current vote counts per candidate.</DialogDescription>
+                            </DialogHeader>
+                            {votesLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : votesElection?.candidates?.length > 0 ? (
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                    {votesElection.candidates
+                                        .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+                                        .map((candidate, index) => (
+                                            <div key={candidate.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-sm font-bold">
+                                                        {index + 1}
+                                                    </span>
+                                                    <div>
+                                                        <p className="font-medium text-sm text-gray-900">{candidate.name}</p>
+                                                        <p className="text-xs text-gray-500">{candidate.role}</p>
+                                                    </div>
+                                                </div>
+                                                <Badge className="bg-indigo-100 text-indigo-700 border-0 text-sm px-3">
+                                                    {candidate.vote_count || 0} votes
+                                                </Badge>
+                                            </div>
+                                        ))}
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-500 py-8">No candidates in this election.</p>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </MainLayout>
         );
@@ -266,7 +316,10 @@ export default function VotingPortalPage() {
                                     <p className="text-sm text-gray-600 mb-6">
                                         Select a candidate to view their manifesto and cast your vote.
                                     </p>
-                                    <Button className="w-full">
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => alert('📧 Check your email for the secure voting link.\n\nIf you haven\'t received one, ask your department admin to send voting links from the Voting Portal.')}
+                                    >
                                         Proceed to Vote
                                     </Button>
                                 </CardContent>

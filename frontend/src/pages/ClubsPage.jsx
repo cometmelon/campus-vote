@@ -8,18 +8,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Users, Loader2, Plus, Trash2 } from 'lucide-react';
 
 export default function ClubsPage() {
     const { isAdmin } = useAuth();
     const queryClient = useQueryClient();
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedClubId, setSelectedClubId] = useState(null);
     const [formData, setFormData] = useState({ name: '', category: '', description: '' });
 
     const { data: clubs, isLoading } = useQuery({
         queryKey: ['clubs'],
         queryFn: () => api.getClubs(),
+    });
+
+    const { data: selectedClub, isLoading: rosterLoading } = useQuery({
+        queryKey: ['club', selectedClubId],
+        queryFn: () => api.getClub(selectedClubId),
+        enabled: !!selectedClubId,
     });
 
     const createMutation = useMutation({
@@ -99,7 +106,11 @@ export default function ClubsPage() {
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <Button variant="link" className="p-0 h-auto text-indigo-600 hover:text-indigo-700">
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto text-indigo-600 hover:text-indigo-700"
+                                            onClick={() => setSelectedClubId(club.id)}
+                                        >
                                             View Roster
                                         </Button>
                                         {isAdmin && (
@@ -122,6 +133,41 @@ export default function ClubsPage() {
                         ))}
                     </div>
                 )}
+
+                {/* View Roster Modal */}
+                <Dialog open={!!selectedClubId} onOpenChange={(open) => !open && setSelectedClubId(null)}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{selectedClub?.name || 'Club'} — Roster</DialogTitle>
+                            <DialogDescription>Members of this club.</DialogDescription>
+                        </DialogHeader>
+                        {rosterLoading ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            </div>
+                        ) : selectedClub?.members?.length > 0 ? (
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                {selectedClub.members.map((member) => (
+                                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div>
+                                            <p className="font-medium text-sm text-gray-900">
+                                                {member.user?.name || member.user?.email || 'Unknown'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Joined {new Date(member.joined_at).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                            {member.role}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">No members yet.</p>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
                 {/* Create Club Modal */}
                 <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
@@ -184,3 +230,4 @@ export default function ClubsPage() {
         </MainLayout>
     );
 }
+
