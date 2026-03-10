@@ -60,7 +60,7 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file (optional)
+# Create .env file (required)
 cp .env.example .env
 # Edit .env and add your RESEND_API_KEY if you have one
 
